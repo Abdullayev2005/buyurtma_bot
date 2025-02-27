@@ -1,14 +1,15 @@
 const { Telegraf, Markup, session } = require('telegraf');
+const LocalSession = require('telegraf-session-local'); // Sessiya uchun
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.use(session());
+bot.use(new LocalSession({ database: 'sessions.json' })); // Sessiyani faylda saqlash
 
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
 
-// 🛠 Sessionni tekshirish
+// 🛠 Sessiya uchun middleware
 bot.use((ctx, next) => {
-    if (!ctx.session) ctx.session = {};
+    ctx.session ??= {}; // Agar sessiya bo‘lmasa, yaratish
     return next();
 });
 
@@ -21,7 +22,7 @@ bot.start((ctx) => {
 🆔 *ID:* ${user.id}`, { parse_mode: 'Markdown' });
     
     ctx.session = {};
-    ctx.reply('😊 Assalomu alaykum! Siz sifatli va ishonchli xizmatdan foydalanmoqchisizmi? Buyurtma turini tanlang:',
+    ctx.reply('😊 Assalomu alaykum! Buyurtma turini tanlang:',
         Markup.keyboard([
             ['💻 Web-sayt buyurtma berish'],
             ['🤖 Telegram bot buyurtma berish']
@@ -31,7 +32,7 @@ bot.start((ctx) => {
 
 // 📌 Buyurtma turini tanlash
 bot.hears(['💻 Web-sayt buyurtma berish', '🤖 Telegram bot buyurtma berish'], (ctx) => {
-    ctx.session.orderType = ctx.message.text === '💻 Web-sayt buyurtma berish' ? 'Web-sayt' : 'Telegram bot';
+    ctx.session.orderType = ctx.message.text.includes('Web-sayt') ? 'Web-sayt' : 'Telegram bot';
     
     if (ctx.session.orderType === 'Web-sayt') {
         ctx.session.step = 'ask_page_count';
@@ -42,22 +43,22 @@ bot.hears(['💻 Web-sayt buyurtma berish', '🤖 Telegram bot buyurtma berish']
             ]).resize()
         );
     } else {
-        ctx.reply('📌 Loyiha haqida qisqacha tushuntiring. Bu kimlar uchun? Nima maqsadda?', Markup.removeKeyboard());
+        ctx.reply('📌 Loyiha haqida qisqacha tushuntiring.', Markup.removeKeyboard());
         ctx.session.step = 'get_description';
     }
 });
 
 // 📌 Matnli javoblarni qabul qilish
 bot.on('text', async (ctx) => {
+    if (!ctx.session?.step) return;
+
     const text = ctx.message.text;
     const user = ctx.from;
-
-    if (!ctx.session.step) return;
 
     if (ctx.session.step === 'ask_page_count') {
         ctx.session.pageCount = text;
         ctx.session.step = 'get_description';
-        return ctx.reply('📌 Loyiha haqida qisqacha tushuntiring. Bu kimlar uchun? Nima maqsadda?', Markup.removeKeyboard());
+        return ctx.reply('📌 Loyiha haqida qisqacha tushuntiring.', Markup.removeKeyboard());
     }
 
     if (ctx.session.step === 'get_description') {
@@ -87,18 +88,19 @@ bot.on('text', async (ctx) => {
 
     if (ctx.session.step === 'get_contact') {
         if (!text.match(/^\+998\d{9}$/)) {
-            return ctx.reply('❌ *Telefon raqami noto‘g‘ri!* Iltimos, quyidagi formatda kiriting:\n\n📞 *+998901234567*', { parse_mode: 'Markdown' });
+            return ctx.reply('❌ Telefon raqami noto‘g‘ri! Quyidagi formatda kiriting:\n\n📞 *+998901234567*', { parse_mode: 'Markdown' });
         }
 
         ctx.session.contact = text;
-        ctx.reply('🎉 *Buyurtmangiz qabul qilindi!* Men yaqin orada aloqaga chiqaman ishonganingiz uchun rahmat! 😊', { parse_mode: 'Markdown' });
+        ctx.reply('🎉 Buyurtmangiz qabul qilindi! Tez orada siz bilan bog‘lanamiz. 😊', { parse_mode: 'Markdown' });
 
         // 🔥 Buyurtmani guruhga yuborish
         const orderInfo = `🔥 *Yangi buyurtma!*
 📌 *Tur:* ${ctx.session.orderType}
 ${ctx.session.pageCount ? `📊 *Sahifalar:* ${ctx.session.pageCount}` : ''}
 📝 *Tavsif:* ${ctx.session.description}
-📞 *Kontakt:* ${ctx.session.contact}${ctx.session.example ? '\n🔗 *Misol:* ' + ctx.session.example : ''}
+📞 *Kontakt:* ${ctx.session.contact}
+${ctx.session.example ? `🔗 *Misol:* ${ctx.session.example}` : ''}
 👤 *Buyurtmachi:* @${user.username || 'yo‘q'}
 🆔 *ID:* ${user.id}`;
 
