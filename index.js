@@ -3,9 +3,9 @@ const LocalSession = require('telegraf-session-local'); // Sessiya uchun
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.use(new LocalSession({ database: 'sessions.json' })); // Sessiyani faylda saqlash
+bot.use(new LocalSession({ database: 'sessions.json' }).middleware()); // Sessiyani faylda saqlash
 
-const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID;
+const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1002297160068';
 
 // 🛠 Sessiya uchun middleware
 bot.use((ctx, next) => {
@@ -16,10 +16,10 @@ bot.use((ctx, next) => {
 // 📌 Start komandasi
 bot.start((ctx) => {
     const user = ctx.from;
-    bot.telegram.sendMessage(GROUP_CHAT_ID, `🆕 *Yangi foydalanuvchi:*
-👤 *Ism:* ${user.first_name || 'Noma’lum'}
-🔹 *Username:* @${user.username || 'yo‘q'}
-🆔 *ID:* ${user.id}`, { parse_mode: 'Markdown' });
+    bot.telegram.sendMessage(GROUP_CHAT_ID, `🆕 <b>Yangi foydalanuvchi:</b>
+👤 <b>Ism:</b> ${user.first_name || 'Noma’lum'}
+🔹 <b>Username:</b> @${user.username || 'yo‘q'}
+🆔 <b>ID:</b> ${user.id}`, { parse_mode: 'HTML' });
     
     ctx.session = {};
     ctx.reply('😊 Assalomu alaykum! Buyurtma turini tanlang:',
@@ -95,16 +95,16 @@ bot.on('text', async (ctx) => {
         ctx.reply('🎉 Buyurtmangiz qabul qilindi! Tez orada siz bilan bog‘lanamiz. 😊', { parse_mode: 'Markdown' });
 
         // 🔥 Buyurtmani guruhga yuborish
-        const orderInfo = `🔥 *Yangi buyurtma!*
-📌 *Tur:* ${ctx.session.orderType}
-${ctx.session.pageCount ? `📊 *Sahifalar:* ${ctx.session.pageCount}` : ''}
-📝 *Tavsif:* ${ctx.session.description}
-📞 *Kontakt:* ${ctx.session.contact}
-${ctx.session.example ? `🔗 *Misol:* ${ctx.session.example}` : ''}
-👤 *Buyurtmachi:* @${user.username || 'yo‘q'}
-🆔 *ID:* ${user.id}`;
+        const orderInfo = `🔥 <b>Yangi buyurtma!</b>
+📌 <b>Tur:</b> ${ctx.session.orderType}
+${ctx.session.pageCount ? `📊 <b>Sahifalar:</b> ${ctx.session.pageCount}` : ''}
+📝 <b>Tavsif:</b> ${ctx.session.description}
+📞 <b>Kontakt:</b> ${ctx.session.contact}
+${ctx.session.example ? `🔗 <b>Misol:</b> ${ctx.session.example}` : ''}
+👤 <b>Buyurtmachi:</b> @${user.username || 'yo‘q'}
+🆔 <b>ID:</b> ${user.id}`;
 
-        bot.telegram.sendMessage(GROUP_CHAT_ID, orderInfo, { parse_mode: 'Markdown' });
+        bot.telegram.sendMessage(GROUP_CHAT_ID, orderInfo, { parse_mode: 'HTML' });
         ctx.session = {}; // Sessiyani tozalash
     }
 });
@@ -117,6 +117,17 @@ function askForContact(ctx) {
         ...Markup.removeKeyboard()
     });
 }
+
+// 📌 `/newuser` komandasi
+bot.command('newuser', (ctx) => {
+  bot.telegram.sendMessage(GROUP_CHAT_ID, 
+    '🆕 <b>Yangi foydalanuvchi:</b>\n' + 
+    '👤 <b>Ism:</b> Uychi tovar\n' + 
+    '🔹 <b>Username:</b> @Uychi_tovar\n' + 
+    '🆔 <b>ID:</b> 6773313319', 
+    { parse_mode: 'HTML' }
+  );
+});
 
 // 🚀 Botni ishga tushirish
 bot.launch().then(() => console.log("🚀 Bot ishga tushdi!"));
