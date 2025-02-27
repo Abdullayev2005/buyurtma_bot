@@ -1,19 +1,17 @@
-const { Telegraf, Markup, session } = require('telegraf');
-const LocalSession = require('telegraf-session-local'); // Sessiya uchun
+const { Telegraf, Markup } = require('telegraf');
+const LocalSession = require('telegraf-session-local');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.use(new LocalSession({ database: 'sessions.json' }).middleware()); // Sessiyani faylda saqlash
+bot.use(new LocalSession({ database: 'sessions.json' }).middleware());
 
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1002297160068';
 
-// 🛠 Sessiya uchun middleware
 bot.use((ctx, next) => {
-    ctx.session ??= {}; // Agar sessiya bo‘lmasa, yaratish
+    ctx.session ??= {};
     return next();
 });
 
-// 📌 Start komandasi
 bot.start((ctx) => {
     const user = ctx.from;
     bot.telegram.sendMessage(GROUP_CHAT_ID, `🆕 <b>Yangi foydalanuvchi:</b>
@@ -30,7 +28,6 @@ bot.start((ctx) => {
     );
 });
 
-// 📌 Buyurtma turini tanlash
 bot.hears(['💻 Web-sayt buyurtma berish', '🤖 Telegram bot buyurtma berish'], (ctx) => {
     ctx.session.orderType = ctx.message.text.includes('Web-sayt') ? 'Web-sayt' : 'Telegram bot';
     
@@ -48,7 +45,6 @@ bot.hears(['💻 Web-sayt buyurtma berish', '🤖 Telegram bot buyurtma berish']
     }
 });
 
-// 📌 Matnli javoblarni qabul qilish
 bot.on('text', async (ctx) => {
     if (!ctx.session?.step) return;
 
@@ -94,7 +90,6 @@ bot.on('text', async (ctx) => {
         ctx.session.contact = text;
         ctx.reply('🎉 Buyurtmangiz qabul qilindi! Tez orada siz bilan bog‘lanamiz. 😊', { parse_mode: 'Markdown' });
 
-        // 🔥 Buyurtmani guruhga yuborish
         const orderInfo = `🔥 <b>Yangi buyurtma!</b>
 📌 <b>Tur:</b> ${ctx.session.orderType}
 ${ctx.session.pageCount ? `📊 <b>Sahifalar:</b> ${ctx.session.pageCount}` : ''}
@@ -105,11 +100,10 @@ ${ctx.session.example ? `🔗 <b>Misol:</b> ${ctx.session.example}` : ''}
 🆔 <b>ID:</b> ${user.id}`;
 
         bot.telegram.sendMessage(GROUP_CHAT_ID, orderInfo, { parse_mode: 'HTML' });
-        ctx.session = {}; // Sessiyani tozalash
+        ctx.session = {};
     }
 });
 
-// 📌 Telefon raqamini so‘rash
 function askForContact(ctx) {
     ctx.session.step = 'get_contact';
     ctx.reply('📞 Iltimos, telefon raqamingizni *+998901234567* formatida kiriting:', { 
@@ -118,16 +112,11 @@ function askForContact(ctx) {
     });
 }
 
-// 📌 `/newuser` komandasi
 bot.command('newuser', (ctx) => {
-  bot.telegram.sendMessage(GROUP_CHAT_ID, 
-    '🆕 <b>Yangi foydalanuvchi:</b>\n' + 
-    '👤 <b>Ism:</b> Uychi tovar\n' + 
-    '🔹 <b>Username:</b> @Uychi_tovar\n' + 
-    '🆔 <b>ID:</b> 6773313319', 
-    { parse_mode: 'HTML' }
-  );
+    bot.telegram.sendMessage(GROUP_CHAT_ID, `🆕 <b>Yangi foydalanuvchi:</b>
+👤 <b>Ism:</b> Uychi tovar
+🔹 <b>Username:</b> @Uychi_tovar
+🆔 <b>ID:</b> 6773313319`, { parse_mode: 'HTML' });
 });
 
-// 🚀 Botni ishga tushirish
 bot.launch().then(() => console.log("🚀 Bot ishga tushdi!"));
